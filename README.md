@@ -33,9 +33,13 @@ A customer service chatbot built with Flask and the Claude API.
 
 ## Usage
 
-1. Open your browser and go to http://127.0.0.1:5000/
+1. Open your browser and go to http://localhost:8080/
 2. Type your message in the input field and press Enter or click Send
 3. Wait for the chatbot to respond
+
+## Deployment
+
+This app is configured for deployment on Vercel using the included `vercel.json` configuration file.
 
 ## Customizing the Chatbot
 
@@ -46,4 +50,6 @@ You can customize the behavior of the chatbot by modifying the system prompt in 
 - `app.py`: Main Flask application
 - `templates/index.html`: Frontend chat interface
 - `.env`: Environment variables (API key)
+- `.env.example`: Example environment file
 - `requirements.txt`: Python dependencies
+- `vercel.json`: Vercel deployment configuration

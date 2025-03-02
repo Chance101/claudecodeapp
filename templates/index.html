@@ -30,6 +30,8 @@
             height: 400px;
             padding: 20px;
             overflow-y: auto;
+            display: flex;
+            flex-direction: column;
         }
         .message {
             margin-bottom: 15px;
@@ -37,17 +39,22 @@
             border-radius: 18px;
             max-width: 70%;
             word-wrap: break-word;
+            display: inline-block;
+            white-space: pre-wrap;
+            clear: both;
         }
         .user-message {
             background-color: #e9f0fd;
             color: #333;
-            margin-left: auto;
+            float: right;
+            clear: both;
             border-bottom-right-radius: 0;
         }
         .bot-message {
             background-color: #f1f0f0;
             color: #333;
-            margin-right: auto;
+            float: left;
+            clear: both;
             border-bottom-left-radius: 0;
         }
         .chat-input {
@@ -130,10 +137,24 @@
                 const messageDiv = document.createElement('div');
                 messageDiv.classList.add('message');
                 messageDiv.classList.add(isUser ? 'user-message' : 'bot-message');
-                messageDiv.textContent = message;
+                
+                // Use innerHTML instead of textContent to preserve line breaks
+                const sanitizedMessage = message
+                    .replace(/&/g, '&amp;')
+                    .replace(/</g, '&lt;')
+                    .replace(/>/g, '&gt;')
+                    .replace(/"/g, '&quot;')
+                    .replace(/'/g, '&#039;');
+                
+                messageDiv.innerHTML = sanitizedMessage;
+                
+                // Create a div to clear floats
+                const clearDiv = document.createElement('div');
+                clearDiv.style.clear = 'both';
                 
                 // Insert before the typing indicator
                 messagesContainer.insertBefore(messageDiv, typingIndicator);
+                messagesContainer.insertBefore(clearDiv, typingIndicator);
                 
                 // Scroll to bottom
                 messagesContainer.scrollTop = messagesContainer.scrollHeight;
@@ -174,10 +195,20 @@
                         })
                     });
                     
+                    if (!response.ok) {
+                        throw new Error(`HTTP error! Status: ${response.status}`);
+                    }
+                    
                     const data = await response.json();
                     
                     // Hide typing indicator
                     hideTypingIndicator();
+                    
+                    if (data.error) {
+                        console.error('API Error:', data.error);
+                        addMessage(`Sorry, there was an error: ${data.error}`, false);
+                        return;
+                    }
                     
                     // Add bot response to chat
                     addMessage(data.response, false);
@@ -187,9 +218,9 @@
                         conversationId = data.conversation_id;
                     }
                 } catch (error) {
-                    console.error('Error:', error);
+                    console.error('Error:', error.message);
                     hideTypingIndicator();
-                    addMessage('Sorry, there was an error processing your request.', false);
+                    addMessage('Sorry, there was an error connecting to the server. Please try again.', false);
                 }
             }
 
