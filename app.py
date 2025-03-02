@@ -63,21 +63,25 @@ def chat():
         
         # Call Claude API directly
         headers = {
+            "x-api-key": api_key,
             "anthropic-version": "2023-06-01",
-            "content-type": "application/json",
-            "x-api-key": api_key
+            "content-type": "application/json"
         }
         
         api_url = "https://api.anthropic.com/v1/messages"
         payload = {
-            "model": "claude-3-sonnet-20240229",
+            "model": "claude-3-haiku-20240307",
             "max_tokens": 1000,
             "temperature": 0.7,
             "messages": messages
         }
         
         try:
-            response = requests.post(api_url, headers=headers, json=payload, timeout=30)
+            # Print request info but hide the API key
+            safe_headers = headers.copy()
+            safe_headers["x-api-key"] = "..." + api_key[-4:]
+            print(f"API Request: URL={api_url}, Headers={safe_headers}, Payload={json.dumps(payload)}")
+            response = requests.post(api_url, headers=headers, json=payload, timeout=60)
             response.raise_for_status()  # Raise an exception for 4XX/5XX responses
         except requests.exceptions.RequestException as e:
             print(f"API request error: {str(e)}")

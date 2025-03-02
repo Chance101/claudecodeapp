@@ -42,6 +42,8 @@
             display: inline-block;
             white-space: pre-wrap;
             clear: both;
+            min-height: 1em;
+            line-height: 1.5;
         }
         .user-message {
             background-color: #e9f0fd;
@@ -111,9 +113,8 @@
             Customer Service Chat
         </div>
         <div class="chat-messages" id="chat-messages">
-            <div class="message bot-message">
-                Hello! How can I assist you today?
-            </div>
+            <div class="message bot-message" style="height: auto; line-height: normal;">Hello! How can I assist you today?</div>
+            <div style="clear: both;"></div>
             <div class="typing-indicator" id="typing-indicator">
                 Agent is typing<span></span>
             </div>
