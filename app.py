@@ -19,8 +19,10 @@ def index():
 @app.route('/api/chat', methods=['POST'])
 def chat():
     try:
+        print(f"Received API request: {request.remote_addr}, Headers: {dict(request.headers)}")
         data = request.json
         if not data:
+            print(f"No JSON data in request: {request.data}")
             return jsonify({"error": "No JSON data provided"}), 400
             
         user_message = data.get('message', '')
