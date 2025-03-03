@@ -120,10 +120,20 @@
 
     <script>
         document.addEventListener('DOMContentLoaded', function() {
+            console.log('DOM fully loaded - initializing chat');
+            
             const messagesContainer = document.getElementById('chat-messages');
             const messageInput = document.getElementById('message-input');
             const sendButton = document.getElementById('send-button');
             const typingIndicator = document.getElementById('typing-indicator');
+            
+            // Debug message to confirm elements were found
+            console.log('Chat elements:', { 
+                messagesContainer: !!messagesContainer,
+                messageInput: !!messageInput,
+                sendButton: !!sendButton,
+                typingIndicator: !!typingIndicator
+            });
             
             let conversationId = 'default';
 
@@ -164,8 +174,14 @@
             }
 
             async function sendMessage() {
+                console.log('sendMessage function called');
                 const message = messageInput.value.trim();
-                if (!message) return;
+                if (!message) {
+                    console.log('No message to send, returning');
+                    return;
+                }
+                
+                console.log('Sending message:', message);
                 
                 // Clear input
                 messageInput.value = '';
@@ -302,14 +318,32 @@
                 }
             }
 
-            // Event listeners
-            sendButton.addEventListener('click', sendMessage);
+            // Event listeners with explicit debugging
+            console.log('Adding event listeners');
             
-            messageInput.addEventListener('keypress', function(e) {
-                if (e.key === 'Enter') {
+            if (sendButton) {
+                sendButton.addEventListener('click', function(e) {
+                    console.log('Send button clicked');
+                    e.preventDefault();
                     sendMessage();
-                }
-            });
+                });
+                console.log('Send button event listener added');
+            } else {
+                console.error('Send button not found!');
+            }
+            
+            if (messageInput) {
+                messageInput.addEventListener('keypress', function(e) {
+                    if (e.key === 'Enter') {
+                        console.log('Enter key pressed');
+                        e.preventDefault();
+                        sendMessage();
+                    }
+                });
+                console.log('Input keypress event listener added');
+            } else {
+                console.error('Message input not found!');
+            }
         });
     </script>
 </body>
