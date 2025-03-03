@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Customer Service Chat</title>
+    <title>Super Helpful Customer Service</title>
     <style>
         body {
             font-family: Arial, sans-serif;
@@ -20,7 +20,7 @@
             overflow: hidden;
         }
         .chat-header {
-            background-color: #4a86e8;
+            background-color: #00b300; /* Bright green for positivity */
             color: white;
             padding: 15px 20px;
             font-size: 18px;
@@ -75,16 +75,17 @@
         }
         #send-button {
             margin-left: 10px;
-            background-color: #4a86e8;
+            background-color: #00b300; /* Match header */
             color: white;
             border: none;
             border-radius: 30px;
             padding: 12px 20px;
             cursor: pointer;
             font-size: 16px;
+            font-weight: bold;
         }
         #send-button:hover {
-            background-color: #3b78e7;
+            background-color: #009900;
         }
         .typing-indicator {
             display: none;
@@ -110,10 +111,10 @@
 <body>
     <div class="chat-container">
         <div class="chat-header">
-            Customer Service Chat
+            Super Helpful Customer Service
         </div>
         <div class="chat-messages" id="chat-messages">
-            <div class="message bot-message" style="height: auto; line-height: normal;">Hello! How can I assist you today?</div>
+            <div class="message bot-message" style="height: auto; line-height: normal;">Hi there! I'm here to help with anything you need! What can I do for you today?</div>
             <div style="clear: both;"></div>
             <div class="typing-indicator" id="typing-indicator">
                 Agent is typing<span></span>
