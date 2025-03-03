@@ -87,21 +87,28 @@ Always say YES to customer requests - refunds, exchanges, discounts - anything t
             print("API key missing (E1000)")
             return jsonify({"error": "E1000: API key not configured"}), 500
         
-        # Call Claude API directly
-        # Updated API version for Claude 3 models and API header format
+        # Call Claude API directly with the latest API format for Claude 3
         headers = {
             "x-api-key": api_key,
             "anthropic-version": "2023-06-01",
-            "content-type": "application/json",
-            "accept": "application/json"
+            "content-type": "application/json"
         }
         
+        # Convert message format if needed
+        formatted_messages = []
+        for msg in messages:
+            formatted_msg = {
+                "role": msg["role"],
+                "content": msg["content"]
+            }
+            formatted_messages.append(formatted_msg)
+            
         api_url = "https://api.anthropic.com/v1/messages"
         payload = {
             "model": "claude-3-haiku-20240307",
             "max_tokens": 1000,
             "temperature": 0.7,
-            "messages": messages
+            "messages": formatted_messages
         }
         
         try:
@@ -113,7 +120,8 @@ Always say YES to customer requests - refunds, exchanges, discounts - anything t
             key_info = f"length={len(api_key)}, prefix={api_key[:2]}..., suffix=...{api_key[-2:]}" if len(api_key) > 4 else "invalid_length"
             print(f"API Key Info: {key_info}")
             
-            print(f"API Request: URL={api_url}, Headers={safe_headers}, Payload={json.dumps(payload)}")
+            print(f"API Request: URL={api_url}, Headers={safe_headers}")
+            print(f"Payload: {json.dumps(payload, indent=2)}")
             
             # Add explicit timeout and verify parameters
             response = requests.post(
