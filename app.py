@@ -2,12 +2,15 @@ from flask import Flask, request, jsonify, render_template
 import os
 import json
 import requests
+import datetime
 from dotenv import load_dotenv
+from flask_cors import CORS
 
 # Load environment variables
 load_dotenv()
 
 app = Flask(__name__)
+CORS(app)  # Enable CORS for all routes
 
 # Store conversation history
 conversations = {}
@@ -136,6 +139,15 @@ def chat():
         error_traceback = traceback.format_exc()
         print(f"Unexpected error (E9999): {str(e)}\n{error_traceback}")
         return jsonify({"error": "E9999: An unexpected server error occurred"}), 500
+
+# Add a health check endpoint for debugging
+@app.route('/api/health', methods=['GET'])
+def health_check():
+    return jsonify({
+        "status": "ok",
+        "timestamp": str(datetime.datetime.now()),
+        "environment": os.environ.get('FLASK_ENV', 'development')
+    })
 
 if __name__ == '__main__':
     app.run(debug=True, host='0.0.0.0', port=8080)

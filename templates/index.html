@@ -233,6 +233,9 @@
                         errorMessage = 'E0004: Invalid response format from server.';
                     }
                     
+                    // Show more detailed troubleshooting info
+                    errorMessage += ' (Check browser console for details)';
+                    
                     // Log detailed error information
                     console.error('Error details:', {
                         name: error.name,
