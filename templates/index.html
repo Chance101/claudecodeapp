@@ -179,25 +179,47 @@
                 try {
                     console.log('Sending chat request...');
                     
-                    // First check if API is available
-                    const healthCheck = await fetch('/api/health')
-                        .catch(err => {
-                            console.error('Health check failed:', err);
-                            throw new Error('Unable to reach server health check');
-                        });
+                    // Get the current URL to determine base URL
+                    const currentUrl = window.location.href;
+                    const baseUrl = new URL(currentUrl).origin;
+                    
+                    console.log(`Base URL: ${baseUrl}`);
+                    
+                    // First check if API is available with full URL
+                    const healthCheckUrl = `${baseUrl}/api/health`;
+                    console.log(`Checking health at: ${healthCheckUrl}`);
+                    
+                    const healthCheck = await fetch(healthCheckUrl, {
+                        method: 'GET',
+                        headers: {
+                            'Accept': 'application/json'
+                        },
+                        // Ensure credentials are included
+                        credentials: 'same-origin',
+                        // Add cache control
+                        cache: 'no-cache'
+                    }).catch(err => {
+                        console.error('Health check failed:', err);
+                        throw new Error(`Unable to reach server health check: ${err.message}`);
+                    });
                     
                     if (!healthCheck.ok) {
-                        console.error('Health check returned non-200 status:', healthCheck.status);
-                        throw new Error(`Server health check failed: ${healthCheck.status}`);
+                        const errorText = await healthCheck.text();
+                        console.error('Health check returned non-200 status:', healthCheck.status, errorText);
+                        throw new Error(`Server health check failed: ${healthCheck.status} - ${errorText}`);
                     }
                     
-                    console.log('Health check passed, sending message to backend');
+                    const healthData = await healthCheck.json();
+                    console.log('Health check response:', healthData);
                     
                     // Send message to backend with explicit timeout
                     const controller = new AbortController();
                     const timeoutId = setTimeout(() => controller.abort(), 30000); // 30 second timeout
                     
-                    const response = await fetch('/api/chat', {
+                    const chatUrl = `${baseUrl}/api/chat`;
+                    console.log(`Sending chat request to: ${chatUrl}`);
+                    
+                    const response = await fetch(chatUrl, {
                         method: 'POST',
                         headers: {
                             'Content-Type': 'application/json',
@@ -207,14 +229,21 @@
                             message: message,
                             conversation_id: conversationId
                         }),
-                        signal: controller.signal
+                        signal: controller.signal,
+                        credentials: 'same-origin',
+                        cache: 'no-cache'
                     }).finally(() => clearTimeout(timeoutId));
                     
                     if (!response.ok) {
-                        throw new Error(`HTTP error! Status: ${response.status}`);
+                        const errorText = await response.text();
+                        console.error(`HTTP error: Status ${response.status}`, errorText);
+                        throw new Error(`HTTP error! Status: ${response.status} - ${errorText}`);
                     }
                     
-                    const data = await response.json();
+                    const data = await response.json().catch(err => {
+                        console.error('Failed to parse JSON response:', err);
+                        throw new Error('Invalid JSON response from server');
+                    });
                     
                     // Hide typing indicator
                     hideTypingIndicator();
