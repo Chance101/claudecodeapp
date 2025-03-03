@@ -1,8 +1,10 @@
-from flask import Flask, request, jsonify, render_template
+from flask import Flask, request, jsonify, render_template, make_response
 import os
 import json
 import requests
 import datetime
+import time
+import sys
 from dotenv import load_dotenv
 from flask_cors import CORS
 
@@ -19,8 +21,15 @@ conversations = {}
 def index():
     return render_template('index.html')
 
-@app.route('/api/chat', methods=['POST'])
+@app.route('/api/chat', methods=['POST', 'OPTIONS'])
 def chat():
+    # Handle CORS preflight request
+    if request.method == 'OPTIONS':
+        response = make_response()
+        response.headers.add('Access-Control-Allow-Origin', '*')
+        response.headers.add('Access-Control-Allow-Headers', 'Content-Type,Authorization')
+        response.headers.add('Access-Control-Allow-Methods', 'GET,POST,OPTIONS')
+        return response
     try:
         print(f"Received API request: {request.remote_addr}, Headers: {dict(request.headers)}")
         data = request.json
@@ -171,12 +180,30 @@ def chat():
         return jsonify({"error": "E9999: An unexpected server error occurred"}), 500
 
 # Add a health check endpoint for debugging
-@app.route('/api/health', methods=['GET'])
+@app.route('/api/health', methods=['GET', 'OPTIONS'])
 def health_check():
+    if request.method == 'OPTIONS':
+        # Handle preflight request
+        response = make_response()
+        response.headers.add('Access-Control-Allow-Origin', '*')
+        response.headers.add('Access-Control-Allow-Headers', 'Content-Type,Authorization')
+        response.headers.add('Access-Control-Allow-Methods', 'GET,POST,OPTIONS')
+        return response
+        
+    # Display detailed environment info
+    python_version = f"{sys.version_info.major}.{sys.version_info.minor}.{sys.version_info.micro}"
+    
+    # Check if we can access environment variables
+    has_api_key = bool(os.getenv("ANTHROPIC_API_KEY"))
+    
+    # Report Flask and environment details
     return jsonify({
         "status": "ok",
         "timestamp": str(datetime.datetime.now()),
-        "environment": os.environ.get('FLASK_ENV', 'development')
+        "environment": os.environ.get('FLASK_ENV', 'development'),
+        "python_version": python_version,
+        "has_api_key": has_api_key,
+        "server_time": time.time()
     })
 
 if __name__ == '__main__':

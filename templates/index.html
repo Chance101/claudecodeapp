@@ -252,6 +252,10 @@
                         errorMessage = 'E0003: Request was aborted. Please try again.';
                     } else if (error.name === 'SyntaxError') {
                         errorMessage = 'E0004: Invalid response format from server.';
+                    } else if (error.message && error.message.includes('health check')) {
+                        errorMessage = 'E0005: Health check failed - server unavailable.';
+                    } else if (error.message && error.message.includes('Failed to fetch')) {
+                        errorMessage = 'E0006: Network error - failed to fetch. CORS issue possible.';
                     }
                     
                     // Show more detailed troubleshooting info
