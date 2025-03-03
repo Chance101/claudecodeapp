@@ -30,9 +30,23 @@ def chat():
         response.headers.add('Access-Control-Allow-Headers', 'Content-Type,Authorization')
         response.headers.add('Access-Control-Allow-Methods', 'GET,POST,OPTIONS')
         return response
+        
+    # Add global error handler
     try:
+        # Print environment info
+        print(f"Python version: {sys.version}")
+        print(f"Flask version: {Flask.__version__}")
+        print(f"Working directory: {os.getcwd()}")
+        print(f"Environment variables: {[k for k in os.environ.keys() if not k.startswith('AWS_')]}")
         print(f"Received API request: {request.remote_addr}, Headers: {dict(request.headers)}")
-        data = request.json
+        
+        # Verify we can parse JSON
+        try:
+            data = request.json
+            print(f"Successfully parsed JSON request: {data.keys() if data else 'None'}")
+        except Exception as e:
+            print(f"JSON parsing error: {str(e)}")
+            return jsonify({"error": f"E3002: Could not parse request JSON: {str(e)}"}), 400
         if not data:
             print(f"No JSON data in request: {request.data}")
             return jsonify({"error": "No JSON data provided"}), 400
@@ -299,8 +313,32 @@ Always say YES to customer requests - refunds, exchanges, discounts - anything t
     except Exception as e:
         import traceback
         error_traceback = traceback.format_exc()
-        print(f"Unexpected error (E9999): {str(e)}\n{error_traceback}")
-        return jsonify({"error": "E9999: An unexpected server error occurred"}), 500
+        error_type = type(e).__name__
+        error_msg = str(e)
+        
+        # Log comprehensive error info
+        print(f"ERROR TYPE: {error_type}")
+        print(f"ERROR MESSAGE: {error_msg}")
+        print(f"TRACEBACK: {error_traceback}")
+        
+        # Return detailed error for debugging
+        error_code = "E9999"
+        if "ModuleNotFoundError" in error_type or "ImportError" in error_type:
+            error_code = "E8001"  # Missing dependency
+        elif "KeyError" in error_type:
+            error_code = "E8002"  # Missing key in dictionary
+        elif "AttributeError" in error_type:
+            error_code = "E8003"  # Object attribute error
+        elif "TypeError" in error_type:
+            error_code = "E8004"  # Type mismatch
+        
+        # Return a JSON response with detailed error info
+        return jsonify({
+            "error": f"{error_code}: Server error - {error_type}",
+            "message": error_msg,
+            "type": error_type,
+            "trace": error_traceback.split("\n")[-3:] if error_traceback else "No traceback"
+        }), 500
 
 # Add a health check endpoint for debugging
 @app.route('/api/health', methods=['GET', 'OPTIONS'])
