@@ -35,7 +35,8 @@ def chat():
     try:
         # Print environment info
         print(f"Python version: {sys.version}")
-        print(f"Flask version: {Flask.__version__}")
+        import flask
+        print(f"Flask version: {flask.__version__}")
         print(f"Working directory: {os.getcwd()}")
         print(f"Environment variables: {[k for k in os.environ.keys() if not k.startswith('AWS_')]}")
         print(f"Received API request: {request.remote_addr}, Headers: {dict(request.headers)}")
