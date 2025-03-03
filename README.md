@@ -41,6 +41,17 @@ A customer service chatbot built with Flask and the Claude API.
 
 This app is configured for deployment on Vercel using the included `vercel.json` configuration file.
 
+If automatic GitHub deployments stop working:
+1. Go to the Vercel dashboard and check for any build errors
+2. Verify that the GitHub integration is still connected
+3. Try manually deploying from the Vercel dashboard
+4. You can also install the Vercel CLI and deploy manually:
+   ```
+   npm install -g vercel
+   vercel login
+   vercel
+   ```
+
 ## Customizing the Chatbot
 
 You can customize the behavior of the chatbot by modifying the system prompt in the `app.py` file. The system prompt defines how the chatbot will behave and what capabilities it has.
