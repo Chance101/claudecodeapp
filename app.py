@@ -59,7 +59,8 @@ def chat():
         # Check if API key is available
         api_key = os.getenv("ANTHROPIC_API_KEY")
         if not api_key:
-            return jsonify({"error": "API key not configured"}), 500
+            print("API key missing (E1000)")
+            return jsonify({"error": "E1000: API key not configured"}), 500
         
         # Call Claude API directly
         headers = {
@@ -83,22 +84,39 @@ def chat():
             print(f"API Request: URL={api_url}, Headers={safe_headers}, Payload={json.dumps(payload)}")
             response = requests.post(api_url, headers=headers, json=payload, timeout=60)
             response.raise_for_status()  # Raise an exception for 4XX/5XX responses
+        except requests.exceptions.ConnectionError as e:
+            print(f"API connection error (E1001): {str(e)}")
+            return jsonify({"error": "E1001: Failed to connect to the AI service. Network connection issue."}), 500
+        except requests.exceptions.Timeout as e:
+            print(f"API timeout error (E1002): {str(e)}")
+            return jsonify({"error": "E1002: Request to AI service timed out. Please try again."}), 500
+        except requests.exceptions.HTTPError as e:
+            status_code = e.response.status_code if hasattr(e, 'response') and e.response is not None else "unknown"
+            print(f"API HTTP error (E1003): Status {status_code} - {str(e)}")
+            return jsonify({"error": f"E1003: AI service returned error {status_code}. Please try again."}), 500
         except requests.exceptions.RequestException as e:
-            print(f"API request error: {str(e)}")
-            return jsonify({"error": "Failed to connect to the AI service. Please try again."}), 500
+            print(f"API request error (E1004): {str(e)}")
+            return jsonify({"error": "E1004: Failed to connect to the AI service. Please try again."}), 500
         
         try:
             response_data = response.json()
         except ValueError:
-            print(f"Invalid JSON response: {response.text}")
-            return jsonify({"error": "Invalid response from AI service"}), 500
+            print(f"Invalid JSON response (E2001): {response.text}")
+            return jsonify({"error": "E2001: Invalid JSON response from AI service"}), 500
         
         # Check for expected response format
-        if "content" not in response_data or not response_data["content"]:
-            print(f"Unexpected API response format: {response_data}")
-            return jsonify({"error": "Unexpected response format from AI service"}), 500
+        if "content" not in response_data:
+            print(f"Missing 'content' field in API response (E2002): {response_data}")
+            return jsonify({"error": "E2002: Unexpected response format from AI service (missing 'content')"}), 500
+        elif not response_data["content"]:
+            print(f"Empty 'content' field in API response (E2003): {response_data}")
+            return jsonify({"error": "E2003: Empty response content from AI service"}), 500
             
-        assistant_message = response_data["content"][0]["text"]
+        try:
+            assistant_message = response_data["content"][0]["text"]
+        except (KeyError, IndexError) as e:
+            print(f"Error extracting response text (E2004): {str(e)}, Response data: {response_data}")
+            return jsonify({"error": "E2004: Unable to extract response text from AI service"}), 500
         
         # Add assistant response to conversation history
         conversations[conversation_id].append({"role": "assistant", "content": assistant_message})
@@ -108,9 +126,14 @@ def chat():
             "conversation_id": conversation_id
         })
         
+    except json.JSONDecodeError as e:
+        print(f"JSON decode error (E3001): {str(e)}")
+        return jsonify({"error": "E3001: Invalid request data format"}), 400
     except Exception as e:
-        print(f"Unexpected error: {str(e)}")
-        return jsonify({"error": "An unexpected error occurred"}), 500
+        import traceback
+        error_traceback = traceback.format_exc()
+        print(f"Unexpected error (E9999): {str(e)}\n{error_traceback}")
+        return jsonify({"error": "E9999: An unexpected server error occurred"}), 500
 
 if __name__ == '__main__':
     app.run(debug=True, host='0.0.0.0', port=8080)

@@ -221,7 +221,26 @@
                 } catch (error) {
                     console.error('Error:', error.message);
                     hideTypingIndicator();
-                    addMessage('Sorry, there was an error connecting to the server. Please try again.', false);
+                    
+                    // More specific error message based on the error type
+                    let errorMessage = 'E0001: Unable to connect to the server. Please try again.';
+                    
+                    if (error.name === 'TypeError') {
+                        errorMessage = 'E0002: Network error - check your internet connection.';
+                    } else if (error.name === 'AbortError') {
+                        errorMessage = 'E0003: Request was aborted. Please try again.';
+                    } else if (error.name === 'SyntaxError') {
+                        errorMessage = 'E0004: Invalid response format from server.';
+                    }
+                    
+                    // Log detailed error information
+                    console.error('Error details:', {
+                        name: error.name,
+                        message: error.message,
+                        errorCode: errorMessage.split(':')[0]
+                    });
+                    
+                    addMessage(`Sorry, there was an error: ${errorMessage}`, false);
                 }
             }
 
