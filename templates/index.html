@@ -18,14 +18,9 @@
             border-radius: 10px;
             box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
             overflow: hidden;
+            padding-top: 10px; /* Add some padding at the top since header is removed */
         }
-        .chat-header {
-            background-color: #00b300; /* Bright green for positivity */
-            color: white;
-            padding: 15px 20px;
-            font-size: 18px;
-            font-weight: bold;
-        }
+        /* Title header removed */
         .chat-messages {
             height: 400px;
             padding: 20px;
@@ -110,9 +105,6 @@
 </head>
 <body>
     <div class="chat-container">
-        <div class="chat-header">
-            Super Helpful Customer Service
-        </div>
         <div class="chat-messages" id="chat-messages">
             <div class="message bot-message" style="height: auto; line-height: normal;">Hi there! I'm here to help with anything you need! What can I do for you today?</div>
             <div style="clear: both;"></div>
