@@ -184,17 +184,38 @@
                 showTypingIndicator();
                 
                 try {
-                    // Send message to backend
+                    console.log('Sending chat request...');
+                    
+                    // First check if API is available
+                    const healthCheck = await fetch('/api/health')
+                        .catch(err => {
+                            console.error('Health check failed:', err);
+                            throw new Error('Unable to reach server health check');
+                        });
+                    
+                    if (!healthCheck.ok) {
+                        console.error('Health check returned non-200 status:', healthCheck.status);
+                        throw new Error(`Server health check failed: ${healthCheck.status}`);
+                    }
+                    
+                    console.log('Health check passed, sending message to backend');
+                    
+                    // Send message to backend with explicit timeout
+                    const controller = new AbortController();
+                    const timeoutId = setTimeout(() => controller.abort(), 30000); // 30 second timeout
+                    
                     const response = await fetch('/api/chat', {
                         method: 'POST',
                         headers: {
-                            'Content-Type': 'application/json'
+                            'Content-Type': 'application/json',
+                            'Accept': 'application/json'
                         },
                         body: JSON.stringify({
                             message: message,
                             conversation_id: conversationId
-                        })
-                    });
+                        }),
+                        signal: controller.signal
+                    }).finally(() => clearTimeout(timeoutId));
                     
                     if (!response.ok) {
                         throw new Error(`HTTP error! Status: ${response.status}`);

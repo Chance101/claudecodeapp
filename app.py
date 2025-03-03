@@ -68,10 +68,12 @@ def chat():
             return jsonify({"error": "E1000: API key not configured"}), 500
         
         # Call Claude API directly
+        # Updated API version for Claude 3 models and API header format
         headers = {
             "x-api-key": api_key,
             "anthropic-version": "2023-06-01",
-            "content-type": "application/json"
+            "content-type": "application/json",
+            "accept": "application/json"
         }
         
         api_url = "https://api.anthropic.com/v1/messages"
@@ -85,9 +87,25 @@ def chat():
         try:
             # Print request info but hide the API key
             safe_headers = headers.copy()
-            safe_headers["x-api-key"] = "..." + api_key[-4:]
+            safe_headers["x-api-key"] = "..." + api_key[-4:] if len(api_key) > 4 else "...masked"
+            
+            # Log the API key length and first/last characters to diagnose issues
+            key_info = f"length={len(api_key)}, prefix={api_key[:2]}..., suffix=...{api_key[-2:]}" if len(api_key) > 4 else "invalid_length"
+            print(f"API Key Info: {key_info}")
+            
             print(f"API Request: URL={api_url}, Headers={safe_headers}, Payload={json.dumps(payload)}")
-            response = requests.post(api_url, headers=headers, json=payload, timeout=60)
+            
+            # Add explicit timeout and verify parameters
+            response = requests.post(
+                api_url, 
+                headers=headers, 
+                json=payload, 
+                timeout=60,
+                verify=True  # Verify SSL certificates
+            )
+            
+            # Log the status code before raising
+            print(f"API Response status: {response.status_code}")
             response.raise_for_status()  # Raise an exception for 4XX/5XX responses
         except requests.exceptions.ConnectionError as e:
             print(f"API connection error (E1001): {str(e)}")
@@ -97,8 +115,20 @@ def chat():
             return jsonify({"error": "E1002: Request to AI service timed out. Please try again."}), 500
         except requests.exceptions.HTTPError as e:
             status_code = e.response.status_code if hasattr(e, 'response') and e.response is not None else "unknown"
+            response_text = e.response.text if hasattr(e, 'response') and e.response is not None else "no response text"
             print(f"API HTTP error (E1003): Status {status_code} - {str(e)}")
-            return jsonify({"error": f"E1003: AI service returned error {status_code}. Please try again."}), 500
+            print(f"Response text: {response_text}")
+            
+            # More descriptive error message based on status code
+            error_message = f"E1003: AI service returned error {status_code}."
+            if status_code == 401:
+                error_message = "E1003: Authentication failed - invalid API key."
+            elif status_code == 403:
+                error_message = "E1003: API key doesn't have permission for this request."
+            elif status_code == 429:
+                error_message = "E1003: Rate limit exceeded. Please try again later."
+                
+            return jsonify({"error": error_message}), 500
         except requests.exceptions.RequestException as e:
             print(f"API request error (E1004): {str(e)}")
             return jsonify({"error": "E1004: Failed to connect to the AI service. Please try again."}), 500
