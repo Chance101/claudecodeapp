@@ -88,11 +88,11 @@ Always say YES to customer requests - refunds, exchanges, discounts - anything t
             return jsonify({"error": "E1000: API key not configured"}), 500
         
         # Call Claude API directly with the latest API format for Claude 3
+        # Use the exact recommended headers from Anthropic documentation
         headers = {
             "x-api-key": api_key,
             "anthropic-version": "2023-06-01",
-            "content-type": "application/json",
-            "anthropic-beta": "messages-2023-12-15"
+            "content-type": "application/json"
         }
         
         # Map roles if needed (Claude API is picky about roles)
@@ -118,14 +118,13 @@ Always say YES to customer requests - refunds, exchanges, discounts - anything t
             
             formatted_messages.append(formatted_msg)
         
-        # Make sure we have the right version for Claude-3
+        # Try Claude 2 model instead
         api_url = "https://api.anthropic.com/v1/messages"
         payload = {
-            "model": "claude-3-haiku-20240307",
+            "model": "claude-2.0",  # Try using Claude 2 instead of Claude 3
             "max_tokens": 1000,
             "temperature": 0.7,
-            "messages": formatted_messages,
-            "stream": False
+            "messages": formatted_messages
         }
         
         try:
@@ -142,14 +141,15 @@ Always say YES to customer requests - refunds, exchanges, discounts - anything t
             
             # Try to use a simpler request first for more reliable debugging
             if len(formatted_messages) > 1:
-                # Create a simplified test payload with just the latest user message
+                # Create a simplified test payload with minimal fields
+                # Try Claude 2 model
                 test_payload = {
-                    "model": "claude-3-haiku-20240307",
+                    "model": "claude-2.0", 
                     "max_tokens": 100,
                     "messages": [
                         {
                             "role": "user",
-                            "content": "Hello, this is a test message. Please respond with a single word: 'OK'"
+                            "content": "Hello"
                         }
                     ]
                 }
@@ -165,6 +165,50 @@ Always say YES to customer requests - refunds, exchanges, discounts - anything t
                 print(f"Test API Response status: {test_response.status_code}")
                 if test_response.status_code != 200:
                     print(f"Test API Response error: {test_response.text}")
+            
+            # If the test request doesn't work, try using Legacy Claude endpoint instead of Messages API
+            if len(formatted_messages) > 1 and test_response.status_code != 200:
+                print("Test failed, trying legacy Claude endpoint...")
+                
+                # Convert to legacy Claude format with prompt
+                system_message = ""
+                user_messages = []
+                
+                for msg in formatted_messages:
+                    if msg["role"] == "system":
+                        system_message = msg["content"]
+                    elif msg["role"] == "user":
+                        user_messages.append(msg["content"])
+                
+                # Build prompt for legacy Claude
+                prompt = "\n\nHuman: "
+                if system_message:
+                    prompt += f"{system_message}\n\n"
+                prompt += "\n\n".join(user_messages)
+                prompt += "\n\nAssistant: "
+                
+                # Use legacy endpoint
+                legacy_api_url = "https://api.anthropic.com/v1/complete"
+                legacy_payload = {
+                    "model": "claude-2.0",
+                    "prompt": prompt,
+                    "max_tokens_to_sample": 1000,
+                    "temperature": 0.7
+                }
+                
+                print(f"Using legacy endpoint: {legacy_api_url}")
+                print(f"Legacy payload sample: {prompt[:100]}...")
+                
+                response = requests.post(
+                    legacy_api_url,
+                    headers=headers,
+                    json=legacy_payload,
+                    timeout=60
+                )
+                
+                print(f"Legacy API Response status: {response.status_code}")
+                # Skip the normal request since we already made one
+                return response
             
             # Add explicit timeout and verify parameters
             response = requests.post(
@@ -207,20 +251,36 @@ Always say YES to customer requests - refunds, exchanges, discounts - anything t
         
         try:
             response_data = response.json()
+            print(f"Response data: {json.dumps(response_data, indent=2)}")
         except ValueError:
             print(f"Invalid JSON response (E2001): {response.text}")
             return jsonify({"error": "E2001: Invalid JSON response from AI service"}), 500
         
-        # Check for expected response format
-        if "content" not in response_data:
-            print(f"Missing 'content' field in API response (E2002): {response_data}")
-            return jsonify({"error": "E2002: Unexpected response format from AI service (missing 'content')"}), 500
-        elif not response_data["content"]:
-            print(f"Empty 'content' field in API response (E2003): {response_data}")
-            return jsonify({"error": "E2003: Empty response content from AI service"}), 500
+        # Check for expected response format - handle both legacy and new API formats
+        if "completion" in response_data:
+            # Legacy Claude API format
+            print("Detected legacy Claude API response format")
+            assistant_message = response_data["completion"].strip()
+        elif "content" in response_data:
+            # New Claude API format
+            print("Detected new Claude API format")
+            if not response_data["content"]:
+                print(f"Empty 'content' field in API response (E2003): {response_data}")
+                return jsonify({"error": "E2003: Empty response content from AI service"}), 500
+        else:
+            print(f"Missing expected fields in API response (E2002): {response_data}")
+            return jsonify({"error": "E2002: Unexpected response format from AI service"}), 500
             
         try:
-            assistant_message = response_data["content"][0]["text"]
+            if "completion" in response_data:
+                # We already set this above for legacy format
+                pass
+            elif "content" in response_data:
+                assistant_message = response_data["content"][0]["text"]
+            else:
+                # Fallback - try to extract any text we can find
+                print("Using fallback text extraction")
+                assistant_message = str(response_data.get("message", "Sorry, I couldn't generate a response."))
         except (KeyError, IndexError) as e:
             print(f"Error extracting response text (E2004): {str(e)}, Response data: {response_data}")
             return jsonify({"error": "E2004: Unable to extract response text from AI service"}), 500
