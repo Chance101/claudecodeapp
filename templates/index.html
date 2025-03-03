@@ -189,6 +189,10 @@
                     const healthCheckUrl = `${baseUrl}/api/health`;
                     console.log(`Checking health at: ${healthCheckUrl}`);
                     
+                    // Log if we're in production or development
+                    const isProduction = baseUrl.includes('vercel.app');
+                    console.log(`Environment: ${isProduction ? 'Production' : 'Development'}`);
+                    
                     const healthCheck = await fetch(healthCheckUrl, {
                         method: 'GET',
                         headers: {
@@ -216,7 +220,11 @@
                     const controller = new AbortController();
                     const timeoutId = setTimeout(() => controller.abort(), 30000); // 30 second timeout
                     
-                    const chatUrl = `${baseUrl}/api/chat`;
+                    // Use mock endpoint in production to test connectivity
+                    const isProduction = baseUrl.includes('vercel.app');
+                    const chatUrl = isProduction ? 
+                        `${baseUrl}/api/mock` : 
+                        `${baseUrl}/api/chat`;
                     console.log(`Sending chat request to: ${chatUrl}`);
                     
                     const response = await fetch(chatUrl, {

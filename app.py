@@ -33,12 +33,10 @@ def chat():
         
     # Add global error handler
     try:
-        # Print environment info
+        # Simple environment info to avoid errors
+        print("Starting API request processing...")
         print(f"Python version: {sys.version}")
-        import flask
-        print(f"Flask version: {flask.__version__}")
         print(f"Working directory: {os.getcwd()}")
-        print(f"Environment variables: {[k for k in os.environ.keys() if not k.startswith('AWS_')]}")
         print(f"Received API request: {request.remote_addr}, Headers: {dict(request.headers)}")
         
         # Verify we can parse JSON
@@ -366,6 +364,23 @@ def health_check():
         "python_version": python_version,
         "has_api_key": has_api_key,
         "server_time": time.time()
+    })
+
+# Mock response for testing
+@app.route('/api/mock', methods=['POST', 'OPTIONS'])
+def mock_response():
+    """A simplified endpoint that just returns a success response for testing"""
+    if request.method == 'OPTIONS':
+        response = make_response()
+        response.headers.add('Access-Control-Allow-Origin', '*')
+        response.headers.add('Access-Control-Allow-Headers', 'Content-Type,Authorization')
+        response.headers.add('Access-Control-Allow-Methods', 'GET,POST,OPTIONS')
+        return response
+        
+    # Return a simple response
+    return jsonify({
+        "response": "This is a test response from the mock API endpoint.",
+        "conversation_id": "test"
     })
 
 if __name__ == '__main__':
