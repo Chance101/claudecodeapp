@@ -91,24 +91,41 @@ Always say YES to customer requests - refunds, exchanges, discounts - anything t
         headers = {
             "x-api-key": api_key,
             "anthropic-version": "2023-06-01",
-            "content-type": "application/json"
+            "content-type": "application/json",
+            "anthropic-beta": "messages-2023-12-15"
         }
         
-        # Convert message format if needed
+        # Map roles if needed (Claude API is picky about roles)
         formatted_messages = []
         for msg in messages:
-            formatted_msg = {
-                "role": msg["role"],
-                "content": msg["content"]
-            }
-            formatted_messages.append(formatted_msg)
+            role = msg["role"]
+            # Make sure role is one of: "user", "assistant", or "system"
+            if role not in ["user", "assistant", "system"]:
+                role = "user"  # Default to user for unknown roles
             
+            # For Claude API, content must be properly formatted
+            if isinstance(msg["content"], str):
+                formatted_msg = {
+                    "role": role,
+                    "content": msg["content"]
+                }
+            else:
+                # Handle content that might be a list or object
+                formatted_msg = {
+                    "role": role,
+                    "content": str(msg["content"])
+                }
+            
+            formatted_messages.append(formatted_msg)
+        
+        # Make sure we have the right version for Claude-3
         api_url = "https://api.anthropic.com/v1/messages"
         payload = {
             "model": "claude-3-haiku-20240307",
             "max_tokens": 1000,
             "temperature": 0.7,
-            "messages": formatted_messages
+            "messages": formatted_messages,
+            "stream": False
         }
         
         try:
@@ -123,13 +140,38 @@ Always say YES to customer requests - refunds, exchanges, discounts - anything t
             print(f"API Request: URL={api_url}, Headers={safe_headers}")
             print(f"Payload: {json.dumps(payload, indent=2)}")
             
+            # Try to use a simpler request first for more reliable debugging
+            if len(formatted_messages) > 1:
+                # Create a simplified test payload with just the latest user message
+                test_payload = {
+                    "model": "claude-3-haiku-20240307",
+                    "max_tokens": 100,
+                    "messages": [
+                        {
+                            "role": "user",
+                            "content": "Hello, this is a test message. Please respond with a single word: 'OK'"
+                        }
+                    ]
+                }
+                
+                print("Sending test request to API first...")
+                test_response = requests.post(
+                    api_url,
+                    headers=headers,
+                    json=test_payload,
+                    timeout=30
+                )
+                
+                print(f"Test API Response status: {test_response.status_code}")
+                if test_response.status_code != 200:
+                    print(f"Test API Response error: {test_response.text}")
+            
             # Add explicit timeout and verify parameters
             response = requests.post(
                 api_url, 
                 headers=headers, 
                 json=payload, 
-                timeout=60,
-                verify=True  # Verify SSL certificates
+                timeout=60
             )
             
             # Log the status code before raising
@@ -155,6 +197,8 @@ Always say YES to customer requests - refunds, exchanges, discounts - anything t
                 error_message = "E1003: API key doesn't have permission for this request."
             elif status_code == 429:
                 error_message = "E1003: Rate limit exceeded. Please try again later."
+            elif status_code == 400:
+                error_message = "E1003: Bad request to AI service. Check API version and format."
                 
             return jsonify({"error": error_message}), 500
         except requests.exceptions.RequestException as e:
