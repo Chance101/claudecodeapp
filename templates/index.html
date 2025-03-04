@@ -59,6 +59,7 @@
             padding: 15px;
             background-color: #f9f9f9;
             border-top: 1px solid #eee;
+            margin: 0; /* Reset form margins */
         }
         #message-input {
             flex: 1;
@@ -112,10 +113,10 @@
                 Agent is typing<span></span>
             </div>
         </div>
-        <div class="chat-input">
+        <form onsubmit="return false;" class="chat-input" id="chat-form">
             <input type="text" id="message-input" placeholder="Type your message here..." autocomplete="off">
-            <button id="send-button">Send</button>
-        </div>
+            <button type="submit" id="send-button">Send</button>
+        </form>
     </div>
 
     <script>
@@ -318,31 +319,45 @@
                 }
             }
 
-            // Event listeners with explicit debugging
+            // Add form submit handler
             console.log('Adding event listeners');
             
+            const chatForm = document.getElementById('chat-form');
+            
+            if (chatForm) {
+                chatForm.addEventListener('submit', function(e) {
+                    console.log('Form submitted');
+                    e.preventDefault();
+                    sendMessage();
+                    return false;
+                });
+                console.log('Form submit event listener added');
+            } else {
+                console.error('Chat form not found!');
+            }
+            
+            // Add button click as backup
             if (sendButton) {
                 sendButton.addEventListener('click', function(e) {
                     console.log('Send button clicked');
                     e.preventDefault();
                     sendMessage();
+                    return false;
                 });
                 console.log('Send button event listener added');
-            } else {
-                console.error('Send button not found!');
             }
             
+            // Add Enter key as backup
             if (messageInput) {
                 messageInput.addEventListener('keypress', function(e) {
                     if (e.key === 'Enter') {
                         console.log('Enter key pressed');
                         e.preventDefault();
                         sendMessage();
+                        return false;
                     }
                 });
                 console.log('Input keypress event listener added');
-            } else {
-                console.error('Message input not found!');
             }
         });
     </script>
